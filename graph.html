@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+<style>
+
+.dropdown {
+  position: absolute;
+  /* width: 80px;
+  border-radius: 15px;
+  line-height: 60px; */
+  top: 0;
+  right: 500px;
+  
+}
+.bar {
+        fill: steelblue;
+    }
+</style>
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+
+<div class="dropdown">
+  <p>
+      Select Year : 
+      <select  id="select1">
+      <option  value="2000">2000</option>
+      <option  value="2001">2001</option>
+      <option  value="2002">2002</option>
+      <option  value="2003">2003</option>
+      <option  value="2004">2004</option>
+      <option  value="2005">2005</option>
+      <option  value="2006">2006</option>
+      <option  value="2007">2007</option>
+      <option  value="2008">2008</option>
+      <option  value="2009">2009</option>
+      <option  value="2010">2010</option>
+      <option  value="2011">2011</option>
+      <option  value="2012">2012</option>
+      <option  value="2013">2013</option>
+      <option  value="2014">2014</option>
+      <option  value="2015">2015</option>
+      </select>
+
+      <button onclick="handleYearChange()">
+        Check option
+    </button>
+
+  </p>
+  
+
+</div>
+
+<script>
+let processedData,extraData;
+function microGraph(data){
+  svg.selectAll("#graph").remove() 
+  console.log(data)
+  let temp__=data;
+
+  let temp_=[{'Disease':'HepatitisB','value':parseInt(data['HepatitisB'])},{'Disease':'Polio','value':parseInt(data['Polio'])},{'Disease':'Diphtheria','value':parseInt(data['Diphtheria'])}]
+  
+  console.log(temp_)
+  // Add X axis
+   var x = d3.scaleLinear()
+    .domain([10, 100])
+    .range([ width-800, width-500]);
+  svg.append("g")
+    .attr("transform", "translate(-39," + 534.60 + ")")
+    .call(d3.axisBottom(x))
+    .selectAll("text")
+      .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "end");
+
+  
+    svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width+480-1000)
+          .attr("y", height+50 )
+          .style("font-weight", 'bold')
+          .text("Immunization Coverage among 1 year olds(in %)");
+    
+
+  // Y axis
+  var y = d3.scaleBand()
+  .padding(.1)
+        .domain(["Diphtheria", "HepatitisB","Polio"])
+        .range([ height*0.25,0]);
+      svg.append("g")
+      .attr("transform", "translate("+610+"," +(+398) + ")")
+        .call(d3.axisLeft(y));
+    
+  //Bars
+  svg.selectAll("myRect")
+    .data(temp_)
+    .enter()
+    .append("rect")
+    .attr("transform", function(d) { return "translate(" + x(d.Disease) + ",0)"; })
+    .attr("id", "graph")
+    .attr("x", x(0) )
+    .attr("y", function(d) { return y(d.Disease)+400; })
+    .attr("width", function(d) { return x(d.value)-650; })
+    .attr("height",y.bandwidth()-10 )
+    .attr("fill", function(d) {                                    
+                                    
+                                    var red = "rgb(255, 0, 0)";
+                                    var blue="rgb(0, 0, 255)";
+                                    var green="rgb(0,255,0)"
+                                    if(d.Disease == "Diphtheria"){
+                                        
+                                            return red;                                       
+                                        }
+                                    if(d.Disease == "HepatitisB"){
+                                        
+                                        return green;                                       
+                                    }
+
+                                    if(d.Disease == "Polio"){
+                                        
+                                        return blue;                                       
+                                    }
+                                        
+                                    })
+
+
+   
+}
+function handleYearChange(){
+      var value=document.querySelector('#select1').value;
+      console.log(value)
+      data=[]
+      processedData.forEach(element=>{
+        let temp=element.filter(_element=>{return _element.Year===value});
+        data.push(temp[0]);
+      })
+      console.log(data)
+      svg.selectAll("rect").remove();
+      createRectangle(data);
+      
+    }
+    
+    function createRectangle(data){
+      // -1- Create a tooltip div that is hidden by default:
+      var tooltip = d3.select("#my_dataviz")
+        .append("div")
+          .style("opacity", 0)
+          .attr("class", "tooltip")
+          .style("background-color", "black")
+          .style("border-radius", "5px")
+          .style("padding", "10px")
+          .style("color", "white")
+          .style("top","10px")
+    
+      // -2- Create 3 functions to show / update (when mouse move but stay on same circle) / hide the tooltip
+      var showTooltip = function(d) {
+        microGraph(d.data)
+        tooltip
+          .transition()
+          .duration(200)
+
+        tooltip
+          .style("opacity", 1)
+          .html("Country: " + d.data['Country']+"<br/>"+"Total Expenditure: "+d.data["Totalexpenditure"]+"<br/>"+"Life Expectancy: "+d.data["Lifeexpectancy"])
+          .style("left", "2px")
+          .style("top", "5px")
+      }
+      var moveTooltip = function(d) {
+        tooltip
+          .style("left", (d3.mouse(this)[0]+30) + "px")
+          .style("top", (d3.mouse(this)[1]+30) + "px")
+      }
+      var hideTooltip = function(d) {
+        // svg.selectAll('g1').remove()
+    
+        tooltip
+          .transition()
+          .duration(200)
+          .style("opacity", 0)
+      }
+
+      console.log(extraData)
+      data.push(extraData)
+      var root = d3.stratify().id(function(d) { return d['Country']; })   // Name of the entity (column name is name in csv)
+                              .parentId(function(d) { return d['Parent']; })   // Name of the parent (column name is parent in csv)
+                              (data);
+      root.sum(function(d) { return +parseFloat(d['Lifeexpectancy'])/parseFloat(d['Totalexpenditure']) })  
+      d3.treemap()
+        .size([width-1000, height])
+        .padding(4)
+        (root)
+      console.log(root.leaves());
+      svg
+         .selectAll("rect")
+         .data(root.leaves())
+         .enter()
+            .append("rect")
+                .attr('x', function (d) { return d.x0; })
+                .attr('y', function (d) { return d.y0; })
+                .attr('width', function (d) { return d.x1 - d.x0; })
+                .attr('height', function (d) { return d.y1 - d.y0; })
+                .style("stroke", "black")
+                .style("fill",  function(d) {                                    
+                                    
+                                    var orange = "rgb(223, 112, 39)";
+                                    var blue="rgb(105, 159, 161)";
+                                    if(d.data["Status"] == "Developing"){
+                                        
+                                            return blue;                                       
+                                        }
+                                        else{
+                                          return orange
+                                        }
+                                    })
+                .on("mouseover", showTooltip )
+                .on("mousemove", moveTooltip )
+                .on("mouseleave", hideTooltip )                    
+            
+          }
+  // set the dimensions and margins of the graph
+  var margin = {top: 40, right: 300, bottom: 60, left: 250},
+    width = 2000 - margin.left - margin.right,
+    height = 640 - margin.top - margin.bottom;
+  
+  // append the svg object to the body of the page
+  var svg = d3.select("#my_dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+  
+  // Read data
+   // Add X axis
+   x = d3.scaleLinear()
+        .domain([1, 15])
+        .range([ 0, width+50-1000 ]);
+      svg.append("g")
+        .attr("transform", "translate(0," + 540 + ")")
+         
+        .call(d3.axisBottom(x).ticks(0));
+    
+      // Add X axis label:
+      svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width+80-1000)
+          .attr("y", height+50 )
+          .style("font-weight", 'bold')
+          .text("Government expenditure on health of total governemnt expenditure(in %)");
+    
+      // Add Y axis
+       y = d3.scaleLinear()
+        .domain([35, 90])
+        .range([ height,0 ]);
+      svg.append("g")
+        .call(d3.axisLeft(y).ticks(0));
+    
+      // Add Y axis label:
+      svg.append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("text-anchor", "end")
+          .attr("x", -220)
+          .attr("y", -50 )
+          .style("font-weight", 'bold')
+          .text("Life expectancy")
+          .attr("text-anchor", "start")
+    
+  d3.csv('https://raw.githubusercontent.com/XxSNiPxX/treegraphCSV/main/data%20-%20data.csv', function(data) {
+    function chunk(array) {
+            const chunked_arr = [];
+            let tempCountry='';
+            let tempArr=[];
+            array.forEach(element=>{
+              if(tempCountry===''){
+                tempCountry=element['Country'];
+                tempArr.push(element);
+              }
+              else if(tempCountry!==element['Country'])
+              {
+                tempCountry=element['Country'];
+                chunked_arr.push(tempArr);
+                tempArr=[];
+              }
+              else if(tempCountry===element['Country'])
+              {
+                tempArr.push(element)
+              }
+            })
+            
+            return chunked_arr
+        }
+        var size = 20
+    var allgroups = ["Developed", "Developing"];
+    svg.selectAll("myrect")
+      .data(allgroups)
+      .enter()
+      .append("circle")
+      .attr("transform", "translate(200," + 100 + ")")
+        .attr("cx", 390)
+        .attr("cy", function(d,i){ return 10 + i*(size+5)}) // 100 is where the first dot appears. 25 is the distance between dots
+        .attr("r", 7)
+        .style("fill", function(d){ if(d=='Developed'){
+          return   "rgb(223, 112, 39)";
+        }else{
+          return "rgb(105, 159, 161)";
+        }})
+        svg.selectAll("mylabels")
+      .data(allgroups)
+      .enter()
+      .append("text")
+      .attr("transform", "translate(200," + 100 + ")")
+        .attr("x", 390 + size*.8)
+        .attr("y", function(d,i){ return i * (size + 5) + (size/2)}) // 100 is where the first dot appears. 25 is the distance between dots
+        .style("fill", function(d){ if(d=='Developed'){
+          return   "rgb(223, 112, 39)";
+                                
+        }else{
+          return "rgb(105, 159, 161)";
+        }})
+        .text(function(d){ return d})
+        .attr("text-anchor", "left")
+        .style("alignment-baseline", "middle")
+        
+
+        console.log(data)
+        extraData=data[0]
+        console.log(extraData)
+        data.splice(0,1)
+        console.log(data)
+        preprocessedData=chunk(data);
+        processedData=preprocessedData.filter(element=>{
+          return element.length!==0;
+        })
+        console.log(processedData)
+    
+  })
+  </script>
